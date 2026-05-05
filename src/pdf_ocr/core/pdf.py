@@ -394,6 +394,12 @@ class PDFHandler:
         new_doc.write('  font-family: monospace;\n')
         # new_doc.write('  outline: solid 1px red;\n') # debug
         new_doc.write('}\n')
+        # invert colors in darkmode
+        new_doc.write('@media (prefers-color-scheme: dark) {\n')
+        new_doc.write('  div.page {\n')
+        new_doc.write('    filter: invert() hue-rotate(180deg);\n')
+        new_doc.write('  }\n')
+        new_doc.write('}\n')
         new_doc.write('</style>\n')
         new_doc.write('</head>\n')
         new_doc.write('<body>\n')
