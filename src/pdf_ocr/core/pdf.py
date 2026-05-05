@@ -652,6 +652,7 @@ def _page_insert_textbox_html(
         rect,
         text,
         attrs=None,
+        use_letter_spacing=False,
         # fontsize=6,
         # fontname="helv",
         # render_mode=3,
@@ -662,21 +663,27 @@ def _page_insert_textbox_html(
     width = x1 - x0
     height = y1 - y0
     font_rel_width = 0.6 # monospace # width / height
-    char_width = width / len(text)
-    char_height = char_width / font_rel_width
-    # font_size = min(height, char_height)
-    font_size = height
-    raw_width = len(text) * font_size * font_rel_width
-    letter_spacing = (width - raw_width) / len(text)
+    if use_letter_spacing:
+        # negative letter-spacing can make the text hard to read
+        font_size = height
+        raw_width = len(text) * font_size * font_rel_width
+        letter_spacing = (width - raw_width) / len(text)
+    else:
+        char_width = width / len(text)
+        char_height = char_width / font_rel_width
+        font_size = min(height, char_height)
     line_style = (
         f"left:{try_make_int(x0)}px;" +
         f"top:{try_make_int(y0)}px;" +
         f"width:{try_make_int(width)}px;" +
-        f"height:{try_make_int(height)}px;" +
         f"font-size:{try_make_int(font_size)}px;" +
-        f"letter-spacing:{try_make_int(letter_spacing)}px;" +
         ""
     )
+    if use_letter_spacing:
+        line_style += f"letter-spacing:{try_make_int(letter_spacing)}px;"
+    elif height != font_size:
+        # preserve height
+        line_style += f"height:{try_make_int(height)}px;"
     attrs_str = ""
     if attrs is None:
         attrs = dict()
