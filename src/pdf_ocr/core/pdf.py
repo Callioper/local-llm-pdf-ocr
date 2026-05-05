@@ -426,7 +426,7 @@ class PDFHandler:
                         buf = io.BytesIO()
                         img.save(buf, format="JPEG", quality=85)
                         img_url = (
-                            "data:base64," +
+                            "data:image/jpeg;base64," +
                             base64.b64encode(buf.getvalue()).decode("ascii")
                         )
                         del img
