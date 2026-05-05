@@ -12,6 +12,7 @@ import base64
 import io
 from pathlib import Path
 import os
+import json
 
 import fitz  # PyMuPDF
 from PIL import Image, ImageSequence
@@ -391,6 +392,7 @@ class PDFHandler:
         new_doc.write('  white-space: nowrap;\n')
         # font aspect: 0.6
         new_doc.write('  font-family: monospace;\n')
+        # new_doc.write('  outline: solid 1px red;\n') # debug
         new_doc.write('}\n')
         new_doc.write('</style>\n')
         new_doc.write('</head>\n')
@@ -432,10 +434,18 @@ class PDFHandler:
                     del img_url
                     new_doc.write(f'<div class="page" style="{page_style}">\n')
                     del page_style
+                    prev_rect_coords = None
                     for rect_coords, text in pages_data.get(page_num, []):
+                        if rect_coords[1] == rect_coords[3] == 1:
+                            # last line has zero height
+                            if prev_rect_coords:
+                                rect_coords[1] = prev_rect_coords[3]
+                            else:
+                                rect_coords[1] = 0.9
                         self._draw_invisible_text_html(
                             new_page, rect_coords, text, width, height
                         )
+                        prev_rect_coords = rect_coords
                     new_doc.write(f'</div>\n')
                 return
                 # TODO remove
@@ -495,6 +505,7 @@ class PDFHandler:
                 page,
                 fallback_rect,
                 text,
+                # attrs=dict(rect=rect_coords), # debug
                 # fontsize=6,
                 # fontname="helv",
                 # render_mode=3,
@@ -527,6 +538,7 @@ class PDFHandler:
                 page,
                 line_rect,
                 line,
+                # attrs=dict(rect=rect_coords), # debug
             )
             # PDFHandler._draw_invisible_text(
             #     page,
@@ -629,12 +641,17 @@ class PDFHandler:
         )
 
 
+def try_make_int(n):
+    if int(n) == n:
+        return int(n)
+    return n
 
 
 def _page_insert_textbox_html(
         page,
         rect,
         text,
+        attrs=None,
         # fontsize=6,
         # fontname="helv",
         # render_mode=3,
@@ -647,13 +664,23 @@ def _page_insert_textbox_html(
     font_rel_width = 0.6 # monospace # width / height
     char_width = width / len(text)
     char_height = char_width / font_rel_width
-    font_size = min(height, char_height)
+    # font_size = min(height, char_height)
+    font_size = height
+    raw_width = len(text) * font_size * font_rel_width
+    letter_spacing = (width - raw_width) / len(text)
     line_style = (
-        f"left:{x0}px;" +
-        f"top:{y0}px;" +
-        f"width:{width}px;" +
-        f"height:{height}px;" +
-        f"font-size:{font_size}px;" +
+        f"left:{try_make_int(x0)}px;" +
+        f"top:{try_make_int(y0)}px;" +
+        f"width:{try_make_int(width)}px;" +
+        f"height:{try_make_int(height)}px;" +
+        f"font-size:{try_make_int(font_size)}px;" +
+        f"letter-spacing:{try_make_int(letter_spacing)}px;" +
         ""
     )
-    page.write(f'<span class="line" style="{line_style}">{text}</span>\n')
+    attrs_str = ""
+    if attrs is None:
+        attrs = dict()
+    for key, val in attrs.items():
+        val_str = json.dumps(val, separators=(',', ':'))
+        attrs_str += f' {key}={val_str!r}'
+    page.write(f'<span class="line" style="{line_style}"{attrs_str}>{text}</span>\n')
