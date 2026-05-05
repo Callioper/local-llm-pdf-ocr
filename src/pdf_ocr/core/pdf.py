@@ -659,6 +659,7 @@ def _page_insert_textbox_html(
         text,
         attrs=None,
         use_letter_spacing=False,
+        use_full_height=False,
         # fontsize=6,
         # fontname="helv",
         # render_mode=3,
@@ -674,7 +675,14 @@ def _page_insert_textbox_html(
         font_size = height
         raw_width = len(text) * font_size * font_rel_width
         letter_spacing = (width - raw_width) / len(text)
+    elif use_full_height:
+        # font-size can be too large
+        # which makes the text overflow the bbox
+        font_size = height
     else:
+        # width can be too small
+        # so scaling can make the text hard to read
+        # but still better than overflow
         char_width = width / len(text)
         char_height = char_width / font_rel_width
         font_size = min(height, char_height)
@@ -696,4 +704,4 @@ def _page_insert_textbox_html(
     for key, val in attrs.items():
         val_str = json.dumps(val, separators=(',', ':'))
         attrs_str += f' {key}={val_str!r}'
-    page.write(f'<span class="line" style="{line_style}"{attrs_str}>{text}</span>\n')
+    page.write(f'<span class="line" style="{line_style}"{attrs_str}\n>{text}</span>\n')
