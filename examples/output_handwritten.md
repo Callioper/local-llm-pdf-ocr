@@ -2,33 +2,37 @@
 
 ## Page 1
 
-Algorithms,
+Algorithms
 
 - computational procedure
 
-- processes are finite, but the data does not have an upper bound.
+- processes are finite, but the data does not
 
-mapped
+have an upper bound.
 
-input ↔ output
+input → mapped → output
 
-- the input data needs to properly formatted
+-the input data needs to properly formatted
 
 - ensures a correct algorithm
 
-- post condition is a logical predicate for the input and output
+- Post condition is a logical predicate for the input and output
 
-- Nothing: the algo needs to finish in finite time
+- Holing: the algo needs to finish is finite
+
+time
 
 - look into induction proofs
 
 Correctness
 
-/         \
+Waiting
 
-Validity   Nothing
+Validity
 
 (Conjunction of both)
 
-- if the algo has a strong post condition it makes it more useful
+- if the algo has a strong post condition
+
+it makes it more useful
 

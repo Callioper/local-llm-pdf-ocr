@@ -4,13 +4,15 @@
 
 1000
 
-Fr 10.4.2026
+10.4.2026
 
-Psydotiker
+Fr
+
+Psychotiker
 
 Neurotiker
 
-Typen 14
+Typer 14
 
 Typen 23
 
@@ -20,7 +22,9 @@ starke Grenzen im Kopf
 
 Rechte männlich
 
-Linke weiblich
+Linke
+
+weiblich
 
 verwechseln wenig
 
@@ -28,11 +32,11 @@ verwechseln viel
 
 "Alles ist eins"
 
-denken scharf
+Jenker Scharf
 
-denken verschwommen
+denken verschwommener
 
-Schwammkopf
+Schwamkopf
 
 Schwachkopf
 

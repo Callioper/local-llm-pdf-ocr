@@ -218,6 +218,8 @@ uv run local-llm-pdf-ocr scan.pdf notes.md
 
 > **HTML output size:** images are inlined as base64 JPEG data URLs so the file is self-contained. For very large PDFs, use `--pages 1-N` to limit; a 50-page scan can produce a 100+ MB HTML file.
 
+> **Best alignment:** for forms or layouts where the LLM might emit text in a non-monotonic reading order (causing the DP aligner to mismatch lines to bboxes), pair `--format html` with `--dense-mode always` for per-box OCR. Each Surya bbox gets its own LLM call, eliminating the DP alignment step entirely. The reference outputs in `examples/output_*.html` were generated this way (`--dense-mode always --concurrency 5`). See `examples/screenshots/*_selected.png` for the result with all spans Ctrl+A-selected so the bbox positions are visible.
+
 ### Two pipeline paths
 
 | Path | Flag | Detection | Text | Alignment | Refine | When to use |
