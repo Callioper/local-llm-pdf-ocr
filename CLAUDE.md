@@ -19,6 +19,8 @@ uv run main.py input.pdf --api-base http://localhost:11434/v1 --model glm-ocr:la
 uv run main.py input.pdf --grounded --model qwen/qwen3-vl-8b  # grounded path: bbox-native VLM, no Surya
 uv run main.py photo.avif                                     # AVIF input (native via Pillow ≥11.3)
 uv run main.py input.pdf --no-verify-model                    # skip pre-flight model check (Ollama / non-/v1/models servers)
+uv run main.py input.pdf --format html                        # self-contained HTML output (auto-named input_ocr.html)
+uv run main.py input.pdf out.md                               # Markdown output (extension wins over --format)
 uv run main.py input.pdf -v                                   # verbose debug logging
 uv run uvicorn server:app --reload --port 8000                # web UI at http://localhost:8000
 ```
@@ -28,9 +30,9 @@ Debug/inspection tools live in `scripts/` (`visualize_bboxes.py`, `debug_alignme
 ### Tests
 
 ```bash
-uv run pytest                     # full suite (~35s, loads Surya once; 167 tests)
-uv run pytest -m "not slow"       # fast tier only, no model load (~7s; 145 tests)
-uv run pytest -m slow             # integration: real Surya + example PDFs (~30s; 22 tests)
+uv run pytest                     # full suite (~40s, loads Surya once; 256 fast + 23 slow)
+uv run pytest -m "not slow"       # fast tier only, no model load (~10s; 256 tests)
+uv run pytest -m slow             # integration: real Surya + example PDFs (~30s; 23 tests)
 uv run pytest tests/test_aligner.py -v   # single file
 ```
 
@@ -117,7 +119,7 @@ Both paths take the same **injected components** so extensions can swap any phas
 | `aligner`       | `get_detected_boxes_batch(list[bytes])` + `align_text(structured, text)` | `HybridAligner` (Surya-only)          |
 | `ocr_processor` | async `perform_ocr(image_base64) -> list[str]`                         | `OCRProcessor` (OpenAI-compat LLM)    |
 | `pdf_handler`   | `convert_to_images(path, dpi) -> dict[int, b64]`                       | `PDFHandler`                          |
-| `output_writer` | `callable(input_path, output_path, pages_data, dpi) -> None`           | `pdf_handler.embed_structured_text`   |
+| `output_writer` | `callable(input_path, output_path, pages_data, dpi) -> None`           | resolved from output extension via `pdf_ocr.output.resolve_output_writer` (`.pdf` → `PDFHandler`, `.html`/`.htm` → `HTMLHandler`, `.md`/`.markdown` → `MarkdownHandler`); falls back to `pdf_handler.embed_structured_text` |
 
 `OCRPipeline.run(...)` is async, uses `asyncio.as_completed` + a `Semaphore(concurrency)` for per-page LLM work (so `concurrency=1` is the degenerate sequential case), and drives an optional progress callback:
 
@@ -133,8 +135,11 @@ The `"ocr"` stage label is suffixed with a dense/sparse split when both kinds of
 | Class           | File        | Role                                                                          |
 |-----------------|-------------|-------------------------------------------------------------------------------|
 | `PDFHandler`    | `pdf.py`    | PDF↔image conversion; builds a fresh `new_doc` and overlays invisible text with `render_mode=3`. `_draw_invisible_text` auto-sizes font per box. `IMAGE_EXTENSIONS` includes `.avif` alongside JPEG/PNG/TIFF/BMP/WebP — AVIF decoding is native to Pillow ≥11.3 (the pyproject.toml floor). |
+| `HTMLHandler`   | `html.py`   | Self-contained HTML output: page images inlined as base64 JPEG data URLs; OCR text overlaid as absolutely-positioned invisible `<span>`s. Default sizing mode is `letter-spacing` (font sized to bbox height + letter-spacing computed so text width fills the bbox), giving accurate selection extents. Supports both PDF and image inputs. |
+| `MarkdownHandler` | `markdown.py` | Plain Markdown export. `# OCR output: <input>` top-level header, `## Page N` per page, one block per non-empty box in reading order. No bbox math, no rasterization. |
 | `OCRProcessor`  | `ocr.py`    | `AsyncOpenAI` client against the local LLM; `perform_ocr` returns a list of lines. Per-call `max_tokens` + `timeout` caps prevent runaway generation. Output runs through `_strip_runaway_repetition` (caps any single line at 20 occurrences) and crop responses through the pangram filter. |
 | `HybridAligner` | `aligner.py`| Wraps Surya's `DetectionPredictor`; `get_detected_boxes_batch` returns boxes in row-major order; `align_text` runs the DP twice (row-major + column-major from `_reading_order_indices`) and picks the lower-cost result, so the same code path matches whichever order the LLM emits. |
+| `_layout` helpers | `_layout.py` | Pure helpers shared by every output writer: `is_full_page_fallback` (detect aligner's `[0,0,1,1]+\n` fallback bbox) and `split_multi_line_bbox` (proportional vertical split for `\n`-joined lines in one bbox). PDF and HTML writers call them so edge-case handling stays identical across formats. |
 
 ### Coordinate and text conventions
 - Bounding boxes are normalized `[nx0, ny0, nx1, ny1]` in `0..1` and only scaled to PDF points inside `embed_structured_text`. Don't scale them anywhere else.
@@ -156,7 +161,7 @@ The `"ocr"` stage label is suffixed with a dense/sparse split when both kinds of
 Common forks / extensions map cleanly onto the injection points above:
 
 - **Alternative layout model** (e.g. DETR): implement an aligner exposing `get_detected_boxes_batch` + `align_text` and pass it to `OCRPipeline`.
-- **Alternative output format** (e.g. EPUB): write a function `writer(input_path, output_path, pages_data, dpi)` and pass it as `output_writer=`.
+- **Alternative output format** (e.g. EPUB): write a function `writer(input_path, output_path, pages_data, dpi)` and pass it as `output_writer=`. The CLI / server use `pdf_ocr.output.resolve_output_writer` for extension-based dispatch — extend it to plug a new format into the standard format table (`SUPPORTED_FORMATS`).
 - **Different OCR backend**: implement `perform_ocr(image_base64) -> list[str]` and pass as `ocr_processor=`.
 
 No entry-point edits required in any of these cases.

@@ -19,7 +19,7 @@
 -   **🖼️ PDF or Raw Image Input**: Accepts **`.pdf`, `.jpg`, `.jpeg`, `.png`, `.bmp`, `.webp`, `.tif`/`.tiff`, `.avif`**. Multi-frame TIFFs become multi-page output PDFs — no manual PDF-wrap step.
 -   **⚡ Fast Detection**: Surya runs in detection-only mode (no recognition) and batches across pages.
 -   **🔒 100% Local & Private**: No cloud APIs, no subscription fees. Run it entirely offline using [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com).
--   **🔍 Searchable Outputs**: Embeds an invisible text layer into a sandwich PDF. Glyph bboxes are horizontally scaled so selection in a PDF viewer covers the full width of each text region.
+-   **🔍 Searchable Outputs**: Three output formats — searchable sandwich PDF (default; invisible text layer with horizontally-scaled glyph bboxes so selection covers each text region), self-contained HTML (background page image + invisible absolutely-positioned `<span>`s, letter-spacing-aligned for selection accuracy), or plain Markdown. Pick via `--format` or by giving the desired extension on the output path.
 -   **🖥️ Dual Interfaces**:
     -   **Web UI**: Drag & drop, Dark Mode, real-time per-page progress.
     -   **CLI**: Documented flags for power users and batch automation, Rich progress bars.
@@ -156,7 +156,8 @@ uv run local-llm-pdf-ocr input.pdf output_ocr.pdf
 | Option                    | Description                                                           |
 | ------------------------- | --------------------------------------------------------------------- |
 | `input`                   | Path to a PDF **or** image file (`.jpg`/`.jpeg`/`.png`/`.bmp`/`.webp`/`.tif`/`.tiff`/`.avif`). Required. Multi-frame TIFFs expand to multiple output pages. |
-| `output`                  | Path to output PDF (optional, defaults to `<input_stem>_ocr.pdf`; always a PDF, even for image inputs). |
+| `output`                  | Path to output file (optional). Format is inferred from the extension: `.pdf` (default, searchable PDF), `.html` / `.htm` (self-contained HTML), `.md` / `.markdown` (Markdown text). Defaults to `<input_stem>_ocr.<format>`. |
+| `--format {pdf,html,md}`  | Output format. Used to pick the extension when `output` is omitted, OR to override an unrecognized extension. If `output` has a recognized extension, the extension wins. |
 | `-v`, `--verbose`         | Enable debug logging (alignment details, box counts)                  |
 | `-q`, `--quiet`           | Suppress all output except errors                                     |
 | `--dpi <int>`             | DPI for image rendering (default: 200)                                |
@@ -205,7 +206,17 @@ uv run local-llm-pdf-ocr notes.pdf --dense-mode always --concurrency 5
 
 # Custom dense-mode threshold (auto-detect kicks in earlier)
 uv run local-llm-pdf-ocr mixed.pdf --dense-threshold 40
+
+# HTML output: self-contained file (page images inlined as base64 data URLs)
+uv run local-llm-pdf-ocr scan.pdf --format html       # auto-named scan_ocr.html
+uv run local-llm-pdf-ocr scan.pdf out.html            # explicit path; extension wins
+
+# Markdown output: one block per detected box, page-by-page
+uv run local-llm-pdf-ocr scan.pdf --format md
+uv run local-llm-pdf-ocr scan.pdf notes.md
 ```
+
+> **HTML output size:** images are inlined as base64 JPEG data URLs so the file is self-contained. For very large PDFs, use `--pages 1-N` to limit; a 50-page scan can produce a 100+ MB HTML file.
 
 ### Two pipeline paths
 
@@ -309,6 +320,16 @@ Scores either path against the fixtures in `tests/fixtures/ground_truth_*.json` 
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request — see the [issues](https://github.com/ahnafnafee/local-llm-pdf-ocr/issues) for ideas, or open a new one to discuss.
+
+## 🙌 Contributors
+
+Thanks to everyone who has contributed code, fixes, and ideas to this project.
+
+<a href="https://github.com/ahnafnafee/local-llm-pdf-ocr/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ahnafnafee/local-llm-pdf-ocr" alt="Contributors" />
+</a>
+
+The grid is generated automatically by [contrib.rocks](https://contrib.rocks) from GitHub's contributors API and updates within hours of any merged commit.
 
 **License**: MIT
