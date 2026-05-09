@@ -72,12 +72,22 @@ def media_type_for(output_path: str) -> str:
     return _FORMAT_TO_MEDIA_TYPE[format_from_path(output_path)]
 
 
-def resolve_output_writer(output_path: str) -> OutputWriter:
+def resolve_output_writer(
+    output_path: str,
+    *,
+    html_mode: str | None = None,
+) -> OutputWriter:
     """Pick the writer matching `output_path`'s extension.
 
     Returns the writer's `embed_structured_text` bound method so the
     pipeline can call it as a plain `(input, output, pages, dpi)`
     callable.
+
+    Args:
+        output_path: drives format selection via extension.
+        html_mode: optional sizing-strategy override for the HTML writer
+            ("letter-spacing", "full-height", "scaled"). Ignored for
+            non-HTML outputs.
     """
     # Late imports keep this module light — importing pdf_ocr.output
     # shouldn't pull in fitz or PIL unless the user actually needs a
@@ -85,7 +95,9 @@ def resolve_output_writer(output_path: str) -> OutputWriter:
     fmt = format_from_path(output_path)
     if fmt == "html":
         from pdf_ocr.core.html import HTMLHandler
-        return HTMLHandler().embed_structured_text
+        if html_mode is None:
+            return HTMLHandler().embed_structured_text
+        return HTMLHandler(mode=html_mode).embed_structured_text
     if fmt == "md":
         from pdf_ocr.core.markdown import MarkdownHandler
         return MarkdownHandler().embed_structured_text

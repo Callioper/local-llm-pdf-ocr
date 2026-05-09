@@ -95,6 +95,19 @@ Examples:
              "explicit `output` with a recognized extension are given, "
              "the extension wins. Default: pdf.",
     )
+    parser.add_argument(
+        "--html-mode", dest="html_mode",
+        choices=("letter-spacing", "full-height", "scaled"), default="letter-spacing",
+        help="Span sizing strategy for HTML output (ignored for pdf/md). "
+             "letter-spacing (default): font sized to bbox height, chars "
+             "spread to fill bbox width — best when Surya bboxes match "
+             "visible text width. full-height: font = bbox height, no "
+             "letter-spacing — text uses natural monospace width and may "
+             "overflow the bbox right edge. scaled: shrinks font so text "
+             "fits both bbox dimensions — most compact, but smaller "
+             "selection extents. Try the alternatives if letter-spacing "
+             "produces visible overlay characters past the underlying text.",
+    )
     parser.add_argument("--api-base", help="Override LLM API base URL")
     parser.add_argument("--model", help="Override LLM model name")
     parser.add_argument(
@@ -153,7 +166,7 @@ async def run(args: argparse.Namespace, console: Console) -> None:
     from pdf_ocr.output import resolve_output_writer
 
     output_path = resolve_output_path(args.input_pdf, args.output_pdf, args.format)
-    output_writer = resolve_output_writer(output_path)
+    output_writer = resolve_output_writer(output_path, html_mode=args.html_mode)
 
     pdf_handler = PDFHandler()
     if args.grounded:

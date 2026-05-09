@@ -158,6 +158,7 @@ uv run local-llm-pdf-ocr input.pdf output_ocr.pdf
 | `input`                   | Path to a PDF **or** image file (`.jpg`/`.jpeg`/`.png`/`.bmp`/`.webp`/`.tif`/`.tiff`/`.avif`). Required. Multi-frame TIFFs expand to multiple output pages. |
 | `output`                  | Path to output file (optional). Format is inferred from the extension: `.pdf` (default, searchable PDF), `.html` / `.htm` (self-contained HTML), `.md` / `.markdown` (Markdown text). Defaults to `<input_stem>_ocr.<format>`. |
 | `--format {pdf,html,md}`  | Output format. Used to pick the extension when `output` is omitted, OR to override an unrecognized extension. If `output` has a recognized extension, the extension wins. |
+| `--html-mode {letter-spacing,full-height,scaled}` | Sizing strategy for HTML overlay spans (ignored for pdf/md). `letter-spacing` (default) stretches glyphs to fill the bbox so selection extents match the bbox. `full-height` uses natural monospace width — try this if you see overlay characters extending past the visible page text. `scaled` shrinks the font to fit both dimensions — most compact, but smaller selection extents. See `examples/output_digital_*.html` for all three side by side. |
 | `-v`, `--verbose`         | Enable debug logging (alignment details, box counts)                  |
 | `-q`, `--quiet`           | Suppress all output except errors                                     |
 | `--dpi <int>`             | DPI for image rendering (default: 200)                                |
