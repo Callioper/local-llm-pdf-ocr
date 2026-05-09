@@ -62,13 +62,13 @@ _MONOSPACE_FONT_ASPECT = 0.6
 _JPEG_QUALITY = 80
 
 _PAGE_CSS = """\
-body { margin: 0; }
+body { margin: 0; background: #f5f5f5; }
 div.page {
   position: relative;
   background-repeat: no-repeat;
   background-size: 100% 100%;
   margin: 0 auto 1em auto;
-  outline: solid 1px gray;
+  outline: solid 1px #d0d0d0;
 }
 span.line {
   position: absolute;
@@ -76,10 +76,12 @@ span.line {
   white-space: nowrap;
   font-family: monospace;
   line-height: 1;
-}
-@media (prefers-color-scheme: dark) {
-  body { background: #111; }
-  div.page { filter: invert() hue-rotate(180deg); }
+  /* Keep invisibility intact even when the browser is in dark mode —
+     a previous draft applied `filter: invert()` to the page div, which
+     interacts badly with `color: transparent` in Chromium and renders
+     the glyph outlines as a faint inverted color. The OCR HTML preserves
+     the source page's appearance regardless of OS theme; users who want
+     dark theming for documents can use a browser extension. */
 }
 """
 

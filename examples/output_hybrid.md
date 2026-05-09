@@ -24,7 +24,7 @@ Emergency Contact: Eva Walker Emergency Contact Phone: (906) 334-8926
 
 Describe your medical concerns (symptoms, diagnoses, etc):
 
-runny nose, mucas in throat, weakness, aches, chills, tired
+Runny nose, mucas in throat, weakness, aches, chills, tired
 
 Are you currently taking any medication? (If yes, please describe):
 
