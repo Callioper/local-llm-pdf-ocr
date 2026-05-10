@@ -25,6 +25,7 @@ Progress reporting via optional async callback:
 from __future__ import annotations
 
 import asyncio
+import os
 import base64
 from collections import defaultdict
 from typing import Awaitable, Callable, Optional
@@ -151,9 +152,21 @@ class OCRPipeline:
         # --- Phase 1: batch layout detection ---
         await _notify(progress, "detect", 0, 1, f"Detecting layout for {len(page_nums)} pages...")
         image_bytes = [base64.b64decode(images_dict[p]) for p in page_nums]
-        batch_boxes = await asyncio.to_thread(
-            self.aligner.get_detected_boxes_batch, image_bytes
-        )
+
+        # Batch detection to limit peak memory (Surya on CPU can use 7+ GB)
+        _detect_batch_size = int(os.environ.get("OCR_DETECT_BATCH_SIZE", 20))
+        batch_boxes = []
+        for _i in range(0, len(image_bytes), _detect_batch_size):
+            _batch = image_bytes[_i:_i + _detect_batch_size]
+            _batch_result = await asyncio.to_thread(
+                self.aligner.get_detected_boxes_batch, _batch
+            )
+            batch_boxes.extend(_batch_result)
+            _done = _i + len(_batch)
+            if progress:
+                await progress("detect", _done, len(image_bytes),
+                               f"Detecting layout ({_done}/{len(image_bytes)})")
+
         pages_structured: dict[int, list] = {
             p: [(box, "") for box in batch_boxes[i]] for i, p in enumerate(page_nums)
         }
