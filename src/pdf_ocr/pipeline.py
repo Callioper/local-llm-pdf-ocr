@@ -154,7 +154,10 @@ class OCRPipeline:
         image_bytes = [base64.b64decode(images_dict[p]) for p in page_nums]
 
         # Batch detection to limit peak memory (Surya on CPU can use 7+ GB)
-        _detect_batch_size = int(os.environ.get("OCR_DETECT_BATCH_SIZE", 20))
+        try:
+            _detect_batch_size = int(os.environ.get("OCR_DETECT_BATCH_SIZE", "20"))
+        except ValueError:
+            _detect_batch_size = 20
         batch_boxes = []
         for _i in range(0, len(image_bytes), _detect_batch_size):
             _batch = image_bytes[_i:_i + _detect_batch_size]
@@ -162,10 +165,12 @@ class OCRPipeline:
                 self.aligner.get_detected_boxes_batch, _batch
             )
             batch_boxes.extend(_batch_result)
+            # Release decoded images from memory after each batch
+            image_bytes[_i:_i + len(_batch)] = [None] * len(_batch)
             _done = _i + len(_batch)
             if progress:
                 await progress("detect", _done, len(image_bytes),
-                               f"Detecting layout ({_done}/{len(image_bytes)})")
+                               f"Detecting layout ({_done} input pages, {len(batch_boxes)} results)")
 
         pages_structured: dict[int, list] = {
             p: [(box, "") for box in batch_boxes[i]] for i, p in enumerate(page_nums)
