@@ -41,20 +41,32 @@ _CJK_RANGES = [
 
 _SIMSUN_PATH = r"C:\Windows\Fonts\simsun.ttc"
 
+# Pre-loaded CJK font (loaded once, reused across all pages)
+_cjk_font_obj: "fitz.Font | None" = None
+_cjk_font_available: bool | None = None  # True=SimSun loaded, False=fallback to china-s
+
+
+def _ensure_cjk_font() -> tuple:
+    """Load and cache the CJK font. Returns (fitz.Font, fontname_or_path, is_file)."""
+    global _cjk_font_obj, _cjk_font_available
+    if _cjk_font_available is not None:
+        return _cjk_font_obj, (_SIMSUN_PATH if _cjk_font_available else "china-s"), _cjk_font_available
+    if os.path.exists(_SIMSUN_PATH):
+        _cjk_font_obj = fitz.Font(fontfile=_SIMSUN_PATH)
+        _cjk_font_available = True
+        return _cjk_font_obj, _SIMSUN_PATH, True
+    _cjk_font_obj = fitz.Font(fontname="china-s")
+    _cjk_font_available = False
+    return _cjk_font_obj, "china-s", False
+
 
 def _has_cjk(text: str) -> bool:
+    """Fast check: does text contain CJK characters?"""
     for ch in text:
         cp = ord(ch)
         if any(lo <= cp <= hi for lo, hi in _CJK_RANGES):
             return True
     return False
-
-
-def _get_cjk_font() -> str:
-    """Return SimSun font path if available, else fallback to china-s."""
-    if os.path.exists(_SIMSUN_PATH):
-        return _SIMSUN_PATH
-    return "china-s"
 
 
 class PDFHandler:
@@ -249,11 +261,11 @@ class PDFHandler:
             _cjk = _has_cjk(text)
             _tb_kwargs = {"fontsize": 6, "render_mode": 3, "color": (0, 0, 0), "align": 0}
             if _cjk:
-                _fontfile = _get_cjk_font()
-                if _fontfile != "china-s":
-                    _tb_kwargs["fontfile"] = _fontfile
+                _fcjk, _fsrc, _fis_file = _ensure_cjk_font()
+                if _fis_file:
+                    _tb_kwargs["fontfile"] = _fsrc
                 else:
-                    _tb_kwargs["fontname"] = _fontfile
+                    _tb_kwargs["fontname"] = _fsrc
             else:
                 _tb_kwargs["fontname"] = "helv"
             page.insert_textbox(fallback_rect, text, **_tb_kwargs)
@@ -291,14 +303,11 @@ class PDFHandler:
 
         _cjk = _has_cjk(text)
         if _cjk:
-            _fontfile = _get_cjk_font()
-            if _fontfile != "china-s":
-                font = fitz.Font(fontfile=_fontfile)
-            else:
-                font = fitz.Font(fontname="china-s")
+            _cjk_font, _cjk_source, _cjk_is_file = _ensure_cjk_font()
+            font = _cjk_font
         else:
             font = fitz.Font("helv")
-            _fontfile = None
+            _cjk_font, _cjk_source, _cjk_is_file = None, None, False
 
         # Size so the full glyph extent (ascender - descender in em-units)
         # fits exactly inside the box height. For Helvetica this works out
@@ -375,10 +384,10 @@ class PDFHandler:
             "morph": morph,
         }
         if _cjk:
-            if _fontfile != "china-s":
-                _insert_kwargs["fontfile"] = _fontfile
+            if _cjk_is_file:
+                _insert_kwargs["fontfile"] = _cjk_source
             else:
-                _insert_kwargs["fontname"] = "china-s"
+                _insert_kwargs["fontname"] = _cjk_source
         else:
             _insert_kwargs["fontname"] = "helv"
         page.insert_text(baseline, text, **_insert_kwargs)
