@@ -177,6 +177,9 @@ async def run(args: argparse.Namespace, console: Console) -> None:
             if stage not in tasks:
                 tasks[stage] = progress.add_task(f"[cyan]{message}", total=total)
             progress.update(tasks[stage], total=total, completed=current, description=f"[cyan]{message}")
+            # Plain-text fallback for non-TTY consumers (e.g. book-downloader pipeline)
+            pct = int(current * 100 / total) if total > 0 else 0
+            print(f"  {message}  --- {pct}% {current}/{total}", flush=True)
 
         try:
             await pipeline.run(
