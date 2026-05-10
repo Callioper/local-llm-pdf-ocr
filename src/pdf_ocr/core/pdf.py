@@ -10,6 +10,7 @@ a PDF wrap step first. AVIF support is provided natively by Pillow ≥
 
 import base64
 import io
+import os
 from pathlib import Path
 
 import fitz  # PyMuPDF
@@ -38,6 +39,8 @@ _CJK_RANGES = [
     (0xFF00, 0xFFEF),    # Halfwidth and Fullwidth Forms
 ]
 
+_SIMSUN_PATH = r"C:\Windows\Fonts\simsun.ttc"
+
 
 def _has_cjk(text: str) -> bool:
     for ch in text:
@@ -47,10 +50,11 @@ def _has_cjk(text: str) -> bool:
     return False
 
 
-# PyMuPDF built-in CJK font names (Adobe, subsetted and embedded automatically)
-# "china-s" = Simplified Chinese, "china-t" = Traditional Chinese
-# "japan" = Japanese, "korea" = Korean
-_CJK_FONTNAME = "china-s"
+def _get_cjk_font() -> str:
+    """Return SimSun font path if available, else fallback to china-s."""
+    if os.path.exists(_SIMSUN_PATH):
+        return _SIMSUN_PATH
+    return "china-s"
 
 
 class PDFHandler:
@@ -243,12 +247,16 @@ class PDFHandler:
         if is_full_page_fallback:
             fallback_rect = fitz.Rect(10, 10, page_width - 10, page_height - 10)
             _cjk = _has_cjk(text)
-            page.insert_textbox(
-                fallback_rect, text,
-                fontsize=6,
-                fontname=_CJK_FONTNAME if _cjk else "helv",
-                render_mode=3, color=(0, 0, 0), align=0,
-            )
+            _tb_kwargs = {"fontsize": 6, "render_mode": 3, "color": (0, 0, 0), "align": 0}
+            if _cjk:
+                _fontfile = _get_cjk_font()
+                if _fontfile != "china-s":
+                    _tb_kwargs["fontfile"] = _fontfile
+                else:
+                    _tb_kwargs["fontname"] = _fontfile
+            else:
+                _tb_kwargs["fontname"] = "helv"
+            page.insert_textbox(fallback_rect, text, **_tb_kwargs)
             return
 
         # A real bbox with multi-line content: split by line and recurse
@@ -283,9 +291,12 @@ class PDFHandler:
 
         font = fitz.Font("helv")
         _cjk = _has_cjk(text)
-        _fontname = _CJK_FONTNAME if _cjk else "helv"
         if _cjk:
-            font = fitz.Font(_CJK_FONTNAME)
+            _fontfile = _get_cjk_font()
+            if _fontfile != "china-s":
+                font = fitz.Font(fontfile=_fontfile)
+        else:
+            _fontfile = None
 
         # Size so the full glyph extent (ascender - descender in em-units)
         # fits exactly inside the box height. For Helvetica this works out
@@ -355,10 +366,18 @@ class PDFHandler:
         # the text's starting x stays at pdf_rect.x0 and the end x lands
         # at pdf_rect.x0 + target_width.
         morph = (baseline, fitz.Matrix(scale_x, 1.0))
-        page.insert_text(
-            baseline, text,
-            fontsize=fontsize,
-            fontname=_fontname,
-            render_mode=3, color=(0, 0, 0),
-            morph=morph,
-        )
+        _insert_kwargs: dict = {
+            "fontsize": fontsize,
+            "render_mode": 3,
+            "color": (0, 0, 0),
+            "morph": morph,
+        }
+        if _cjk:
+            _fontfile = _get_cjk_font()
+            if _fontfile != "china-s":
+                _insert_kwargs["fontfile"] = _fontfile
+            else:
+                _insert_kwargs["fontname"] = _fontfile
+        else:
+            _insert_kwargs["fontname"] = "helv"
+        page.insert_text(baseline, text, **_insert_kwargs)
