@@ -78,6 +78,12 @@ Examples:
              "never: original full-page OCR everywhere.",
     )
     parser.add_argument(
+        "--detect-batch-size", type=int, default=20,
+        help="Pages per Surya detection batch. Lower = less RAM; "
+             "higher = faster but more memory (default: 20). "
+             "Also settable via env OCR_DETECT_BATCH_SIZE.",
+    )
+    parser.add_argument(
         "--grounded", action="store_true",
         help="Use a bbox-native VLM (Qwen2.5-VL / Qwen3-VL / etc.) that returns text WITH "
              "bounding boxes in one call. Skips Surya + DP + refine. Requires --model to be "
@@ -182,6 +188,9 @@ async def run(args: argparse.Namespace, console: Console) -> None:
             print(f"  {message}  --- {pct}% {current}/{total}", flush=True)
 
         try:
+            # Forward CLI args that Pipeline reads via env vars
+            if hasattr(args, 'detect_batch_size') and args.detect_batch_size != 20:
+                os.environ["OCR_DETECT_BATCH_SIZE"] = str(args.detect_batch_size)
             await pipeline.run(
                 args.input_pdf, output_path,
                 dpi=args.dpi, pages=args.pages,
