@@ -289,13 +289,15 @@ class PDFHandler:
         if box_width <= 0 or box_height <= 0:
             return
 
-        font = fitz.Font("helv")
         _cjk = _has_cjk(text)
         if _cjk:
             _fontfile = _get_cjk_font()
             if _fontfile != "china-s":
                 font = fitz.Font(fontfile=_fontfile)
+            else:
+                font = fitz.Font(fontname="china-s")
         else:
+            font = fitz.Font("helv")
             _fontfile = None
 
         # Size so the full glyph extent (ascender - descender in em-units)
@@ -373,11 +375,10 @@ class PDFHandler:
             "morph": morph,
         }
         if _cjk:
-            _fontfile = _get_cjk_font()
             if _fontfile != "china-s":
                 _insert_kwargs["fontfile"] = _fontfile
             else:
-                _insert_kwargs["fontname"] = _fontfile
+                _insert_kwargs["fontname"] = "china-s"
         else:
             _insert_kwargs["fontname"] = "helv"
         page.insert_text(baseline, text, **_insert_kwargs)
