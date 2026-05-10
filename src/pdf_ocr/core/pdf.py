@@ -268,7 +268,8 @@ class PDFHandler:
             if _cjk:
                 _fcjk, _fsrc, _fis_file = _ensure_cjk_font()
                 if _fis_file:
-                    _tb_kwargs["fontfile"] = _fsrc
+                    page.insert_font(fontname="F1", fontfile=_fsrc)
+                    _tb_kwargs["fontname"] = "F1"
                 else:
                     _tb_kwargs["fontname"] = _fsrc
             else:
@@ -310,6 +311,10 @@ class PDFHandler:
         if _cjk:
             _cjk_font, _cjk_source, _cjk_is_file = _ensure_cjk_font()
             font = _cjk_font
+            # Ensure the CJK font is embedded in this page's resources.
+            # insert_font() is cheap when called repeatedly with same fontname+fontfile.
+            if _cjk_is_file:
+                page.insert_font(fontname="F1", fontfile=_cjk_source)
         else:
             font = fitz.Font("helv")
             _cjk_font, _cjk_source, _cjk_is_file = None, None, False
@@ -390,7 +395,7 @@ class PDFHandler:
         }
         if _cjk:
             if _cjk_is_file:
-                _insert_kwargs["fontfile"] = _cjk_source
+                _insert_kwargs["fontname"] = "F1"
             else:
                 _insert_kwargs["fontname"] = _cjk_source
         else:
