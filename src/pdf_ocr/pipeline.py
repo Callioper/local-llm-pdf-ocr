@@ -244,8 +244,9 @@ class OCRPipeline:
 
         # --- Phase 4: write output ---
         await _notify(progress, "embed", 0, 1, "Writing output...")
+        _writer = lambda *a: self.output_writer(*a, progress=progress)
         await asyncio.to_thread(
-            self.output_writer, input_path, output_path, pages_structured, dpi
+            _writer, input_path, output_path, pages_structured, dpi
         )
         await _notify(progress, "embed", 1, 1, "Done.")
         return pages_text
@@ -278,8 +279,9 @@ class OCRPipeline:
             pages_text[block.page_index].append(block.text)
 
         await _notify(progress, "embed", 0, 1, "Writing output...")
+        _writer = lambda *a: self.output_writer(*a, progress=progress)
         await asyncio.to_thread(
-            self.output_writer, input_path, output_path, dict(pages_data), dpi
+            _writer, input_path, output_path, dict(pages_data), dpi
         )
         await _notify(progress, "embed", 1, 1, "Done.")
         return dict(pages_text)

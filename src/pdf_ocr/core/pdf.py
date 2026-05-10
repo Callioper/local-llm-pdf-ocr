@@ -138,6 +138,7 @@ class PDFHandler:
         output_pdf_path: str,
         pages_data: dict[int, list[tuple[list[float], str]]],
         dpi: int = 200,
+        progress=None,
     ) -> None:
         """
         Build a searchable "sandwich" PDF: rasterize each page as a background
@@ -176,6 +177,10 @@ class PDFHandler:
 
                 for rect_coords, text in pages_data.get(page_num, []):
                     self._draw_invisible_text(new_page, rect_coords, text, width, height)
+
+                if progress and (page_num + 1) % 10 == 0:
+                    progress("embed", page_num + 1, len(doc),
+                             f"Writing output ({page_num + 1}/{len(doc)} pages)")
 
             new_doc.save(output_pdf_path)
         finally:
