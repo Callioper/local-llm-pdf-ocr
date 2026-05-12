@@ -28,7 +28,16 @@ def main():
     parser.add_argument("--dpi", type=int, default=200, help="DPI for rendering (default: 200)")
     parser.add_argument("--pages", type=str, default=None, help="Page range e.g. 1-3,5")
     parser.add_argument("--detect-batch-size", type=int, default=20, help="Pages per batch")
+    parser.add_argument("--text-threshold", type=float, default=None, help="Override DETECTOR_TEXT_THRESHOLD (default 0.6)")
+    parser.add_argument("--blank-threshold", type=float, default=None, help="Override DETECTOR_BLANK_THRESHOLD (default 0.35)")
     args = parser.parse_args()
+
+    if args.text_threshold is not None or args.blank_threshold is not None:
+        from surya.settings import settings
+        if args.text_threshold is not None:
+            settings.DETECTOR_TEXT_THRESHOLD = args.text_threshold
+        if args.blank_threshold is not None:
+            settings.DETECTOR_BLANK_THRESHOLD = args.blank_threshold
 
     import fitz
     from pdf_ocr.core.aligner import HybridAligner
