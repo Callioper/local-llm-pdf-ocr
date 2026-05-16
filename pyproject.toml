@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Transform scanned and written documents into fully searchable, selectable PDFs using the power of Local LLM Vision"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = { text = "MIT" }
 authors = [
     { name = "Ahnaf An Nafee", email = "ahnafnafee@gmail.com" },
 ]
@@ -36,6 +36,7 @@ dependencies = [
     # transitively, so a clean `pip install local-llm-pdf-ocr` would crash on
     # the first Surya import. Listed here until surya fixes it upstream.
     "requests>=2.31",
+    "pyyaml>=6.0.3",
 ]
 
 [project.optional-dependencies]
